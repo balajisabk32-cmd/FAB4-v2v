@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+/*
+  SAKHI DESIGN SYSTEM
+  -------------------------------------------------------------
+  Palette: soft lavender + baby pink dominant.
+  Typography: deep plum / eggplant (never pure black).
+  Backgrounds: off-white / soft cream (never pure white).
+  Shape lock: all soft radii (cards 24-28px, buttons full-pill,
+  inputs 12px). One radius system across the whole page.
+*/
+
+@theme {
+  /* Backgrounds: cream / off-white, never #ffffff */
+  --color-cream: #fbf6f3;
+  --color-cream-deep: #f6ece9;
+  --color-mist: #f4eef9;
+
+  /* Lavender family */
+  --color-lavender-50: #f6f0fc;
+  --color-lavender-100: #ece0f7;
+  --color-lavender-200: #d9c2ee;
+  --color-lavender-300: #c3a3e4;
+  --color-lavender-400: #a982d6;
+  --color-lavender-500: #8f63c2;
+  --color-lavender-600: #764aa3;
+
+  /* Baby pink family */
+  --color-blush-50: #fdf3f5;
+  --color-blush-100: #fbe5ea;
+  --color-blush-200: #f6c6d2;
+  --color-blush-300: #ee9fb1;
+  --color-blush-400: #e2758d;
+  --color-blush-500: #d14d6d;
+
+  /* Typography: deep plum / eggplant, never pure black */
+  --color-plum-700: #4a2a52;
+  --color-plum-800: #3a1f43;
+  --color-plum-900: #2a152f;
+
+  /* Inks */
+  --color-ink: #3a1f43;
+  --color-ink-soft: #6b4a72;
+  --color-ink-faint: #9a82a0;
+
+  /* Radius scale (one system, locked) */
+  --radius-soft: 16px;
+  --radius-card: 26px;
+  --radius-panel: 34px;
+
+  /* Motion */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Fonts */
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+}
+
+/* Instrument Serif via Fontsource-style self-host substitute.
+   Falls back gracefully. In production swap for next/font. */
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local("Instrument Serif Italic");
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Respect reduced motion globally */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Respect reduced transparency for glassmorphism */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-strong {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: rgb(255 255 255 / 0.96) !important;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   GLASSMORPHISM (web approximation, applied sparingly)
+   frosted panels with inner refraction edge + tinted shadow
+---------------------------------------------------------------------------- */
+.glass {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.28)
+  );
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 24px 60px -20px rgba(74, 42, 82, 0.18);
+}
+
+.glass-strong {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.4)
+  );
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 30px 70px -24px rgba(74, 42, 82, 0.22);
+}
+
+/* ----------------------------------------------------------------------------
+   TEXT TREATMENTS
+---------------------------------------------------------------------------- */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Editorial display headline: serif italic accent over sans display */
+.display-serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* ----------------------------------------------------------------------------
+   UTILITY: breathing animation for ambient elements
+---------------------------------------------------------------------------- */
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.8;
+  }
+}
+
+.breathe {
+  animation: breathe 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe {
+    animation: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   SELECTION + SCROLLBAR
+---------------------------------------------------------------------------- */
+::selection {
+  background: var(--color-lavender-200);
+  color: var(--color-plum-900);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-lavender-200);
+  border-radius: 99px;
+  border: 3px solid var(--color-cream);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-lavender-300);
+}
+
+/* Focus visibility for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--color-lavender-500);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ----------------------------------------------------------------------------
+   PRINT STYLES (For Doctor Summary PDF Export)
+---------------------------------------------------------------------------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Hide non-essential UI elements when printing */
+  header, 
+  .no-print,
+  button {
+    display: none !important;
+  }
+  
+  /* Make backgrounds solid for printing */
+  .glass, .glass-strong, div[class*="backdrop-blur"] {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  
+  /* Ensure charts break nicely across pages */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Prevent charts from being split across pages */
+  div[class*="md:col-span-6"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 2rem !important;
+  }
+}
+
