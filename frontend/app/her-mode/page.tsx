@@ -16,9 +16,21 @@ import {
   Heartbeat,
 } from "@phosphor-icons/react";
 import SakhiAvatar, { AIState } from "@/components/SakhiAvatar";
-import CycleTimeline from "@/components/charts/CycleTimeline";
-import SymptomRadar from "@/components/charts/SymptomRadar";
-import PainFlowCorrelation from "@/components/charts/PainFlowCorrelation";
+import OnboardingChat from "@/components/OnboardingChat";
+import {
+  CycleLengthChart,
+  PeriodDurationChart,
+  SymptomFrequencyChart,
+  MoodCycleChart,
+  FlowIntensityChart,
+  OvulationCalendar,
+  PainTrendChart,
+  WeightTrendChart,
+  SleepHoursChart
+} from "@/components/charts/DashboardCharts";
+import SettingsModal from "@/components/SettingsModal";
+import { useHerNotifications } from "@/hooks/useHerNotifications";
+import HerNotificationCenter from "@/components/HerNotificationCenter";
 
 const cardClass = "bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 relative overflow-hidden";
 const innerCardClass = "bg-white/50 backdrop-blur-sm rounded-[2rem] border border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] p-6 flex flex-col justify-between";
@@ -30,9 +42,19 @@ export default function HerModePage() {
   const [isCheckingData, setIsCheckingData] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [cycleHistory, setCycleHistory] = useState<any[]>([]);
   const [aiState, setAiState] = useState<AIState>("idle");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [mlPredictions, setMlPredictions] = useState<any>({});
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // Initialize notification hook
+  const { 
+    preferences, reminders, toggleMaster, updatePreference, 
+    markCompleted, snoozeReminder, deleteReminder 
+  } = useHerNotifications(profile, logs, cycleHistory);
   const [pulsingChart, setPulsingChart] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,6 +74,10 @@ export default function HerModePage() {
       if (data.profile) {
         setProfile(data.profile);
         setLogs(data.logs || []);
+        setCycleHistory(data.cycleHistory || []);
+        if (!data.profile.preferred_name) {
+          setShowOnboarding(true);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch dashboard data", err);
@@ -61,7 +87,7 @@ export default function HerModePage() {
   };
 
   useEffect(() => {
-    if (!isCheckingData) {
+    if (!isCheckingData && !showOnboarding) {
       const todayStr = new Date().toISOString().split("T")[0];
       const lastCheckIn = localStorage.getItem("sakhi_last_checkin");
       if (lastCheckIn !== todayStr) {
@@ -90,6 +116,16 @@ export default function HerModePage() {
   const diffTime = nextPeriod.getTime() - today.getTime();
   const daysUntilNext = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   const isPcosRisk = profile?.diagnosed_conditions?.includes("PCOS") || profile?.cycle_regularity === "No";
+
+  const handleOnboardingComplete = (data: any) => {
+    setProfile((prev: any) => ({
+      ...prev,
+      preferred_name: data.name,
+      cycle_length_avg: data.cycleLength,
+      period_duration: data.periodDuration
+    }));
+    setShowOnboarding(false);
+  };
 
   const handleCheckInComplete = async (data: any) => {
     setAiState("thinking");
@@ -142,16 +178,18 @@ export default function HerModePage() {
   const cycleAvg = mlPredictions.cycle ? (profile?.cycle_length_avg || 28) : (profile?.cycle_length_avg || 28);
   const daysUntil = mlPredictions.cycle ? mlPredictions.cycle.days_until_next_period : daysUntilNext;
 
+  if (showOnboarding) {
+    return (
+      <div className="min-h-[100dvh] bg-[#FAF8F5] selection:bg-[#2D1B36]/10 font-sans relative flex items-center justify-center p-4">
+        <div className="w-full max-w-lg bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
+           <OnboardingChat onComplete={handleOnboardingComplete} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] bg-[#FAF8F5] selection:bg-[#2D1B36]/10 font-sans relative">
-      <SakhiAvatar 
-        aiState={aiState} 
-        checkInMode={showCheckIn} 
-        defaultOpen={showCheckIn} 
-        onCheckInComplete={handleCheckInComplete} 
-        onChartUpdate={handleChartUpdate}
-      />
-
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full overflow-hidden bg-white/50 border border-white/40 shadow-sm shrink-0">
@@ -173,11 +211,20 @@ export default function HerModePage() {
           </div>
         </div>
         
-        <div className="hidden sm:flex items-center gap-3">
-          <button className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-[#2D1B36] hover:bg-white/80 transition-all hover:scale-105 active:scale-95 shadow-sm">
+        <div className="hidden sm:flex items-center gap-3 relative">
+          <button 
+            onClick={() => setIsNotificationOpen(true)}
+            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-[#2D1B36] hover:bg-white/80 transition-all shadow-sm relative"
+          >
             <Bell weight="duotone" className="w-5 h-5" />
+            {reminders.filter(r => r.status === 'missed').length > 0 && (
+              <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full animate-pulse border-2 border-white" />
+            )}
           </button>
-          <button className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-[#2D1B36] hover:bg-white/80 transition-all hover:scale-105 active:scale-95 shadow-sm">
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-[#2D1B36] hover:bg-white/80 transition-all shadow-sm"
+          >
             <GearSix weight="duotone" className="w-5 h-5" />
           </button>
         </div>
@@ -190,96 +237,77 @@ export default function HerModePage() {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="w-full grid grid-cols-1 md:grid-cols-12 gap-6 pb-24"
         >
-          {/* Primary Row */}
-          <div className={`${cardClass} md:col-span-8 flex flex-col justify-between`}>
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-2 h-2 rounded-full bg-pink-400 animate-pulse" />
-                <span className="text-sm font-medium tracking-widest uppercase text-[#2D1B36]/60">Cycle Intelligence</span>
-              </div>
-              <h2 className="text-4xl font-light tracking-tight text-[#2D1B36]">Your Cycle Timeline</h2>
-              <p className="text-[#2D1B36]/70 mt-4 max-w-md leading-relaxed">Mapping your hormonal rhythm based on your personalized data.</p>
+          {/* Main AI Avatar Section */}
+        <div className="md:col-span-12">
+          <SakhiAvatar 
+            aiState={aiState} 
+            checkInMode={showCheckIn} 
+            onCheckInComplete={handleCheckInComplete} 
+            defaultOpen={showCheckIn}
+            onChartUpdate={handleChartUpdate}
+            profileName={profile?.preferred_name}
+          />
+        </div>
+
+          {/* Ovulation Calendar */}
+          <div className={`${cardClass} md:col-span-12`}>
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar weight="duotone" className="w-6 h-6 text-emerald-400" />
+              <span className="text-sm font-medium tracking-widest uppercase text-[#2D1B36]/60">Ovulation & Fertile Window</span>
             </div>
-            
-            {profile && (
-              <CycleTimeline 
-                lastPeriodStart={profile.last_period_start} 
-                cycleLengthAvg={profile.cycle_length_avg} 
-              />
-            )}
-            
-            
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-              <motion.div 
-                animate={pulsingChart === 'cycle' ? { scale: [1, 1.05, 1], boxShadow: ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 20px rgba(244,114,182,0.6)", "0px 0px 0px rgba(0,0,0,0)"] } : {}}
-                transition={{ duration: 1.5, repeat: pulsingChart === 'cycle' ? 2 : 0 }}
-                className={innerCardClass}
-              >
-                <Calendar weight="duotone" className="w-8 h-8 text-pink-400 mb-6" />
-                <div>
-                  <h4 className="text-2xl font-semibold text-[#2D1B36] tracking-tight">{daysUntil > 0 ? `${daysUntil} Days` : 'Due'}</h4>
-                  <p className="text-sm text-[#2D1B36]/60 mt-1">Next Period</p>
-                </div>
-              </motion.div>
-              <div className={innerCardClass}>
-                <Sparkle weight="duotone" className="w-8 h-8 text-purple-400 mb-6" />
-                <div>
-                  <h4 className="text-xl font-semibold text-[#2D1B36] tracking-tight">{cycleAvg} Days</h4>
-                  <p className="text-sm text-[#2D1B36]/60 mt-1">Avg Cycle</p>
-                </div>
-              </div>
-              <div className={innerCardClass}>
-                <Heartbeat weight="duotone" className="w-8 h-8 text-rose-400 mb-6" />
-                <div>
-                  <h4 className="text-xl font-semibold text-[#2D1B36] tracking-tight">{profile?.period_duration || 5} Days</h4>
-                  <p className="text-sm text-[#2D1B36]/60 mt-1">Avg Duration</p>
-                </div>
-              </div>
-            </div>
+            <h2 className="text-2xl font-light tracking-tight text-[#2D1B36]">Your Window Calendar</h2>
+            <OvulationCalendar profile={profile} />
           </div>
 
-          <div className={`${cardClass} md:col-span-4 flex flex-col items-center justify-center text-center bg-gradient-to-b from-[#2D1B36]/5 to-transparent group`}>
-            <div className="w-24 h-24 rounded-full bg-white/60 shadow-[0_0_40px_rgba(201,168,247,0.3)] flex items-center justify-center mb-6 cursor-pointer group-hover:scale-105 transition-transform duration-500">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[#2D1B36]">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM12 16v-4M12 8h.01" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-medium text-[#2D1B36]">AI Triage</h3>
-            <p className="text-sm text-[#2D1B36]/60 mt-2">Tap to report symptoms via voice</p>
-          </div>
-
-          {/* Secondary Data Row */}
+          {/* Row 1: Cycles & Periods */}
           <div className={`${cardClass} md:col-span-6`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className={iconWrapClass}><Drop weight="duotone" className="w-6 h-6" /></div>
-              <span className="text-xs font-medium uppercase tracking-wider text-[#2D1B36]/40">Flow & Pain (Last 7 Days)</span>
-            </div>
-            <h3 className="text-xl font-medium text-[#2D1B36]">Correlation History</h3>
-            <PainFlowCorrelation logs={logs} />
+            <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Cycle Length Trend</h3>
+            <CycleLengthChart data={cycleHistory} />
+          </div>
+          
+          <div className={`${cardClass} md:col-span-6`}>
+             <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Period Duration Trend</h3>
+             <PeriodDurationChart data={cycleHistory} />
+          </div>
+
+          {/* Row 2: Symptoms & Mood */}
+          <div className={`${cardClass} md:col-span-6`}>
+            <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Common Symptoms</h3>
+            <SymptomFrequencyChart data={logs} />
           </div>
 
           <div className={`${cardClass} md:col-span-6`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className={iconWrapClass}><Heartbeat weight="duotone" className="w-6 h-6" /></div>
-              <span className="text-xs font-medium uppercase tracking-wider text-[#2D1B36]/40">Symptom Tracking</span>
-            </div>
-            <h3 className="text-xl font-medium text-[#2D1B36]">Symptom Frequency</h3>
-            <SymptomRadar logs={logs} />
+            <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Mood vs Cycle Phase</h3>
+            <MoodCycleChart data={logs} />
           </div>
 
-          {/* Tertiary Row */}
-          <div className={`${cardClass} md:col-span-4 bg-[#2D1B36] text-[#FAF8F5]`}>
-            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-6"><Brain weight="duotone" className="w-6 h-6 text-[#FAF8F5]" /></div>
-            <h3 className="text-2xl font-light tracking-tight mb-3">Pattern Detected</h3>
-            <p className="text-sm text-white/70 leading-relaxed">
-              Based on your real data, we noticed patterns correlating your mood and fatigue. Consider resting more during the first two days of your cycle.
-            </p>
+          {/* Row 3: Flow & Pain */}
+          <div className={`${cardClass} md:col-span-6`}>
+            <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Flow Intensity</h3>
+            <FlowIntensityChart data={logs} />
           </div>
 
+          <div className={`${cardClass} md:col-span-6`}>
+            <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Pain Trend</h3>
+            <PainTrendChart data={logs} />
+          </div>
+
+          {/* Row 4: Weight & Sleep */}
+          <div className={`${cardClass} md:col-span-6`}>
+             <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Weight Trend</h3>
+             <WeightTrendChart data={logs} />
+          </div>
+
+          <div className={`${cardClass} md:col-span-6`}>
+             <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Sleep Hours</h3>
+             <SleepHoursChart data={logs} />
+          </div>
+
+          {/* PCOS Warning and Export */}
           <motion.div 
             animate={pulsingChart === 'pcos' ? { scale: [1, 1.02, 1], boxShadow: ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 30px rgba(239,68,68,0.4)", "0px 0px 0px rgba(0,0,0,0)"] } : {}}
             transition={{ duration: 1.5, repeat: pulsingChart === 'pcos' ? 2 : 0 }}
-            className={`${cardClass} md:col-span-4`}
+            className={`${cardClass} md:col-span-6`}
           >
             <div className={iconWrapClass}><WarningCircle weight="duotone" className="w-6 h-6 text-orange-500" /></div>
             <h3 className="text-xl font-medium text-[#2D1B36] mb-2">PCOS Risk Indicator</h3>
@@ -296,15 +324,37 @@ export default function HerModePage() {
             </p>
           </motion.div>
 
-          <div className={`${cardClass} md:col-span-4 flex flex-col justify-center items-center text-center group cursor-pointer`}>
+          <div 
+            onClick={() => window.print()}
+            className={`${cardClass} md:col-span-6 flex flex-col justify-center items-center text-center group cursor-pointer no-print`}
+          >
             <div className="w-20 h-20 rounded-full bg-white/50 border border-white/40 shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 group-hover:shadow-md transition-all duration-500">
               <FilePdf weight="duotone" className="w-8 h-8 text-[#2D1B36]" />
             </div>
             <h3 className="text-lg font-medium text-[#2D1B36]">Doctor Summary</h3>
-            <p className="text-sm text-[#2D1B36]/60 mt-2">Generate your real data PDF report for your next visit.</p>
+            <p className="text-sm text-[#2D1B36]/60 mt-2">Generate your Menstrual PDF report for your next doctor visit.</p>
           </div>
         </motion.div>
       </main>
+
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        mode="her" 
+        currentData={profile} 
+      />
+
+      <HerNotificationCenter 
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        preferences={preferences}
+        reminders={reminders}
+        onToggleMaster={toggleMaster}
+        onUpdatePref={updatePreference}
+        onMarkCompleted={markCompleted}
+        onSnooze={snoozeReminder}
+        onDelete={deleteReminder}
+      />
     </div>
   );
 }

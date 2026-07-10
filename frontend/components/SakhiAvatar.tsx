@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkle } from "@phosphor-icons/react";
-
+import { Sparkle, Microphone, SpeakerSlash } from "@phosphor-icons/react";
 import DailyCheckInChat from "./DailyCheckInChat";
 import { useSakhiChat } from "@/hooks/useSakhiChat";
 
@@ -15,153 +14,215 @@ interface SakhiAvatarProps {
   onCheckInComplete?: (data: any) => void;
   defaultOpen?: boolean;
   onChartUpdate?: (data: any) => void;
+  profileName?: string;
 }
 
-export default function SakhiAvatar({ aiState, checkInMode = false, onCheckInComplete, defaultOpen = false, onChartUpdate }: SakhiAvatarProps) {
+export default function SakhiAvatar({ aiState, checkInMode = false, onCheckInComplete, defaultOpen = false, onChartUpdate, profileName }: SakhiAvatarProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [inputVal, setInputVal] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [mouthOpen, setMouthOpen] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { messages, isLoading, sendMessage } = useSakhiChat(onChartUpdate || (() => {}));
+  const { messages, isLoading, sendMessage, speakText, isSpeaking, stopSpeaking } = useSakhiChat(onChartUpdate || (() => {}), profileName);
 
-  // Auto-open if defaultOpen changes
+  // Setup Speech Recognition
   useEffect(() => {
-    setIsOpen(defaultOpen);
-  }, [defaultOpen]);
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = "en-US";
 
-  // Map state to video source
-  const getVideoSrc = () => {
-    switch (aiState) {
-      case "idle":
-        return "/videos/sakhi-idle.mp4";
-      case "thinking":
-        return "/videos/sakhi-think.mp4";
-      case "talking":
-        return "/videos/sakhi-talk.mp4";
-      default:
-        return "/videos/sakhi-idle.mp4";
+        recognitionRef.current.onresult = (event: any) => {
+          let transcript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+          }
+          setInputVal(transcript);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      setInputVal("");
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      recognitionRef.current?.start();
+      setIsListening(true);
     }
   };
 
+  const isDollTalking = aiState === "talking" || isSpeaking;
+
+  // Lip-sync animation logic
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.load();
+    let interval: NodeJS.Timeout;
+    if (isDollTalking) {
+      interval = setInterval(() => {
+        // Randomize the flapping a bit so it looks more natural than a strict metronome
+        setMouthOpen(prev => (Math.random() > 0.3 ? !prev : prev));
+      }, 150);
+    } else {
+      setMouthOpen(false);
     }
-  }, [aiState]);
+    return () => clearInterval(interval);
+  }, [isDollTalking]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      {/* Floating Chat Interface when clicked */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="mb-4 w-[340px] rounded-[2rem] bg-white/60 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.06)] backdrop-blur-xl border border-white/40 max-h-[60vh] overflow-y-auto custom-scrollbar"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkle weight="duotone" className="text-[#2D1B36] w-6 h-6" />
-              <h3 className="text-[#2D1B36] font-semibold text-lg tracking-tight">Ask Sakhi</h3>
+    <div className="w-full bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 flex flex-col md:flex-row gap-8 mb-8 overflow-hidden relative">
+      
+      {/* Subtle background glow when talking */}
+      {isDollTalking && (
+        <div className="absolute inset-0 bg-pink-100/30 animate-pulse pointer-events-none" />
+      )}
+
+      {/* Left Column: Doll Avatar */}
+      <div className="w-full md:w-1/3 flex flex-col items-center justify-center relative">
+        <motion.div
+          animate={isDollTalking ? { y: [0, -10, 0], scale: [1, 1.02, 1] } : { y: 0, scale: 1 }}
+          transition={isDollTalking ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : { duration: 0.5 }}
+          className="relative w-64 h-64 rounded-full overflow-hidden border-8 border-white shadow-[0_10px_40px_rgba(244,114,182,0.3)] bg-pink-50"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={mouthOpen ? "/sakhi-doll-open.png" : "/sakhi-doll.png"} 
+            alt="Sakhi Doll" 
+            className="w-full h-full object-cover transition-opacity duration-75"
+          />
+
+          {/* Thinking Indicator Overlay */}
+          {aiState === "thinking" && !isSpeaking && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/30 backdrop-blur-[2px]">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                className="w-12 h-12 rounded-full border-4 border-t-pink-500 border-r-transparent border-b-transparent border-l-transparent"
+              />
+            </div>
+          )}
+        </motion.div>
+
+        <div className="mt-6 flex items-center gap-2">
+          <Sparkle weight="duotone" className="text-pink-500 w-6 h-6" />
+          <h3 className="text-[#2D1B36] font-semibold text-2xl tracking-tight">Sakhi</h3>
+        </div>
+        <p className="text-[#2D1B36]/60 text-sm mt-1 text-center max-w-[200px]">
+          {isDollTalking ? "Speaking..." : aiState === "thinking" ? "Thinking..." : "Listening and ready to help."}
+        </p>
+      </div>
+
+      {/* Right Column: Chat Interface */}
+      <div className="w-full md:w-2/3 flex flex-col h-[400px] bg-white/50 rounded-[2rem] border border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] p-6">
+        
+        {checkInMode ? (
+          <DailyCheckInChat onComplete={onCheckInComplete || (() => {})} />
+        ) : (
+          <div className="flex flex-col h-full">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 flex flex-col gap-4 pr-2">
+              {messages.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                  <div className="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center mb-4 text-pink-400">
+                    <Sparkle weight="duotone" className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-xl font-medium text-[#2D1B36] mb-2">
+                    {profileName ? `Hi ${profileName}, how are you feeling today?` : 'How are you feeling today?'}
+                  </h4>
+                  <p className="text-[#2D1B36]/60 text-sm max-w-sm leading-relaxed">
+                    You can type your symptoms or click the microphone to speak with me directly.
+                  </p>
+                </div>
+              )}
+              {messages.map((m) => (
+                <div 
+                  key={m.id} 
+                  className={`max-w-[85%] p-4 rounded-2xl text-base shadow-sm border border-white/40 ${
+                    m.role === 'user' 
+                      ? 'bg-pink-100/90 text-pink-900 self-end rounded-tr-sm' 
+                      : 'bg-white/90 backdrop-blur-md text-[#2D1B36] self-start rounded-tl-sm'
+                  }`}
+                >
+                  {m.text}
+                </div>
+              ))}
+              {isLoading && (
+                <div className="bg-white/90 backdrop-blur-md text-[#2D1B36] self-start rounded-2xl rounded-tl-sm p-4 shadow-sm border border-white/40 flex gap-1.5 items-center">
+                  <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              )}
             </div>
             
-            {checkInMode ? (
-              <DailyCheckInChat onComplete={(data) => {
-                if (onCheckInComplete) onCheckInComplete(data);
-                setTimeout(() => setIsOpen(false), 3000);
-              }} />
-            ) : (
-              <div className="flex flex-col h-full">
-                <div className="flex-1 overflow-y-auto custom-scrollbar mb-4 flex flex-col gap-3 min-h-[150px]">
-                  {messages.length === 0 && (
-                    <p className="text-[#2D1B36]/70 text-sm leading-relaxed">
-                      I am here to support you. Ask me anything about your cycle, symptoms, or just say hello.
-                    </p>
-                  )}
-                  {messages.map((m) => (
-                    <div 
-                      key={m.id} 
-                      className={`max-w-[85%] p-3 rounded-2xl text-sm shadow-sm border border-white/40 ${
-                        m.role === 'user' 
-                          ? 'bg-pink-100/80 text-pink-900 self-end rounded-tr-sm' 
-                          : 'bg-white/70 backdrop-blur-md text-[#2D1B36] self-start rounded-tl-sm'
-                      }`}
+            {/* Input Area */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                sendMessage(inputVal);
+                setInputVal("");
+              }} 
+              className="relative shrink-0 mt-auto"
+            >
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={inputVal}
+                  onChange={(e) => setInputVal(e.target.value)}
+                  placeholder="Type your question or speak to me..."
+                  className="w-full bg-white/60 border border-[#2D1B36]/10 rounded-2xl pl-5 pr-24 py-4 text-[#2D1B36] placeholder:text-[#2D1B36]/40 focus:outline-none focus:ring-2 focus:ring-pink-300/50 transition-all text-base shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  {isSpeaking && (
+                    <button 
+                      type="button"
+                      onClick={stopSpeaking}
+                      className="p-2.5 rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition-colors shadow-sm animate-pulse"
+                      title="Stop speaking"
                     >
-                      {m.text}
-                    </div>
-                  ))}
-                  {isLoading && (
-                    <div className="bg-white/70 backdrop-blur-md text-[#2D1B36] self-start rounded-2xl rounded-tl-sm p-3 shadow-sm border border-white/40 flex gap-1 items-center">
-                      <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
+                      <SpeakerSlash weight="fill" className="w-5 h-5" />
+                    </button>
                   )}
-                </div>
-                
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    sendMessage(inputVal);
-                    setInputVal("");
-                  }} 
-                  className="relative shrink-0"
-                >
-                  <input
-                    type="text"
-                    value={inputVal}
-                    onChange={(e) => setInputVal(e.target.value)}
-                    placeholder="Type your question gently..."
-                    className="w-full bg-white/40 border border-[#2D1B36]/10 rounded-2xl px-4 py-3 text-[#2D1B36] placeholder:text-[#2D1B36]/40 focus:outline-none focus:ring-2 focus:ring-pink-300/50 transition-all text-sm"
-                  />
+                  <button 
+                    type="button"
+                    onClick={toggleListening}
+                    className={`p-2.5 rounded-full transition-all duration-300 ${isListening ? 'bg-pink-200 text-pink-600 shadow-[0_0_15px_rgba(244,114,182,0.5)] animate-pulse' : 'bg-[#2D1B36]/5 text-[#2D1B36] hover:bg-pink-100 hover:text-pink-600'}`}
+                  >
+                    <Microphone weight={isListening ? "fill" : "regular"} className="w-5 h-5" />
+                  </button>
                   <button 
                     type="submit" 
                     disabled={!inputVal.trim() || isLoading}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-[#2D1B36]/5 text-[#2D1B36] hover:bg-[#2D1B36]/10 transition-colors disabled:opacity-50"
+                    className="p-2.5 rounded-full bg-pink-500 text-white hover:bg-pink-600 transition-colors disabled:opacity-50 disabled:bg-[#2D1B36]/10 disabled:text-[#2D1B36]/30 shadow-md"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
                   </button>
-                </form>
+                </div>
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Avatar Widget */}
-      <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="relative w-20 h-20 rounded-full overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.1)] border-4 border-white cursor-pointer bg-[#FAF8F5] flex items-center justify-center"
-      >
-        {/* Subtle glassmorphic fallback glow if video fails or is missing */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-pink-100 to-indigo-100 opacity-50" />
-        
-        {/* Pre-rendered Video Loop */}
-        <video
-          ref={videoRef}
-          src={getVideoSrc()}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover relative z-10"
-        />
-        
-        {/* Thinking Indicator Overlay */}
-        {aiState === "thinking" && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/20 backdrop-blur-[2px]">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-              className="w-8 h-8 rounded-full border-2 border-t-pink-400 border-r-transparent border-b-transparent border-l-transparent"
-            />
+            </form>
           </div>
         )}
-      </motion.button>
+      </div>
     </div>
   );
 }

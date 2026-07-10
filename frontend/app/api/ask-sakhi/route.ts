@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "dummy-key-for-now" });
+
 
 const analyze_cycle_declaration = {
   name: "analyze_cycle",
@@ -47,21 +47,24 @@ const analyze_pcos_risk_declaration = {
 
 export async function POST(req: Request) {
   try {
-    const { prompt } = await requestBody(req);
+    const { prompt, userName } = await req.json();
 
     if (!prompt) {
-      return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const chat = ai.chats.create({
       model: 'gemini-flash-lite-latest',
       config: {
-        systemInstruction: "You are Sakhi, a deeply empathetic, calming, and nurturing feminine AI health assistant. You support women through their cycle and pregnancy journey. Always speak with warmth. You must use the provided tools to analyze symptoms and cycle data whenever appropriate.",
+        systemInstruction: "You are Sakhi, a deeply empathetic, extremely kind, calming, and nurturing feminine AI health assistant. You support women through their cycle and pregnancy journey. Always speak with overwhelming warmth, love, and gentleness, as if you are a caring older sister or a comforting friend. Use a cute, soft, and girly tone. Keep your responses encouraging and supportive. You must use the provided tools to analyze symptoms and cycle data whenever appropriate.",
         tools: [{ functionDeclarations: [analyze_cycle_declaration, analyze_pcos_risk_declaration] }]
       }
     });
 
-    let response = await chat.sendMessage({ message: prompt });
+    const personalizedPrompt = userName ? `[The user's name is ${userName}. Please use it naturally when you respond to them.]\n${prompt}` : prompt;
+
+    let response = await chat.sendMessage({ message: personalizedPrompt });
     let updatedChartData = null;
 
     // Handle function calls
@@ -140,3 +143,4 @@ export async function POST(req: Request) {
 async function requestBody(req: Request) {
   try { return await req.json(); } catch { return {}; }
 }
+

@@ -210,3 +210,47 @@ body {
   outline-offset: 3px;
   border-radius: 4px;
 }
+
+/* ----------------------------------------------------------------------------
+   PRINT STYLES (For Doctor Summary PDF Export)
+---------------------------------------------------------------------------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Hide non-essential UI elements when printing */
+  header, 
+  .no-print,
+  button {
+    display: none !important;
+  }
+  
+  /* Make backgrounds solid for printing */
+  .glass, .glass-strong, div[class*="backdrop-blur"] {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  
+  /* Ensure charts break nicely across pages */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Prevent charts from being split across pages */
+  div[class*="md:col-span-6"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 2rem !important;
+  }
+}
+
