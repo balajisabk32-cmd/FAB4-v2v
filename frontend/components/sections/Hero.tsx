@@ -2,17 +2,12 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight } from "@phosphor-icons/react";
-import { MagneticButton, Badge } from "@/components/kokonut";
 
 /**
- * Hero — editorial manifesto hero.
- * The brief explicitly requests center alignment with cinematic text
- * where the message itself IS the design (valid override of the
- * anti-center-bias rule for manifesto / launch moments).
- *
- * Layout: asymmetric vertical — headline dominates, ambient breathing
- * orbs float around it, CTA sits below. Single message, max 4 text
- * elements (eyebrow badge, headline, subtext, CTA).
+ * Hero — Stage 3 revealed landing content.
+ * Centered angel figure placeholder, welcoming headline, concise subtext, and
+ * a cream CTA with a lavender border. The full-body angel art
+ * (/angel-fullbody.png) drops in later; falls back to /logo.png.
  */
 export function Hero() {
   const reduce = useReducedMotion();
@@ -40,9 +35,9 @@ export function Hero() {
   return (
     <section
       className="relative flex min-h-[100dvh] flex-col items-center justify-center
-                 px-6 pt-72 pb-16 text-center"
+                 px-6 pt-28 pb-16 text-center"
     >
-      {/* Ambient breathing orbs (depth, never pure white bg) */}
+      {/* Ambient breathing orbs (settled-petal / light-speck texture) */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
@@ -64,64 +59,63 @@ export function Hero() {
         animate="visible"
         className="flex max-w-4xl flex-col items-center"
       >
-        {/* Eyebrow badge */}
-        <motion.div variants={item}>
-          <Badge variant="outline" className="mb-7 backdrop-blur-md">
-            <span className="h-1.5 w-1.5 rounded-full bg-blush-400" />
-            for women, by women in Bharat
-          </Badge>
+        {/* Centered angel figure (Stage 3 hero graphic) */}
+        <motion.div variants={item} className="relative mb-10">
+          <div
+            aria-hidden
+            className="breathe absolute left-1/2 top-1/2 -z-10 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-lavender-300/40 to-blush-300/40 blur-3xl mix-blend-multiply"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Sakhi Logo"
+            className="relative h-56 w-auto drop-shadow-[0_8px_30px_rgba(122,74,163,0.25)] sm:h-64 mix-blend-multiply"
+          />
         </motion.div>
 
-        {/* Headline — cinematic, editorial mix of sans + serif italic accent */}
+        {/* Headline */}
         <motion.h1
           variants={item}
-          className="text-balance text-[2.6rem] leading-[1.05] tracking-tight
-                     text-plum-900 sm:text-6xl lg:text-7xl relative"
+          className="text-balance text-[2.4rem] leading-[1.08] tracking-tight
+                     text-plum-900 sm:text-5xl lg:text-6xl"
         >
-          {/* NEW: Abstract Ethereal Glass Orb (User request: not just words) */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-64 md:h-64 rounded-full bg-gradient-to-tr from-lavender-300/30 to-blush-300/30 blur-2xl -z-10 mix-blend-multiply animate-pulse" style={{ animationDuration: '4s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 md:w-48 md:h-48 rounded-full border border-lavender-400/20 rotate-45 -z-10" />
-
-          Your body speaks.
-          <br />
-          <span className="display-serif text-plum-800 relative inline-block">Sakhi</span> finally
-          listens.
+          Discover Your Inner Radiance with{" "}
+          <span className="display-serif text-plum-800 italic">SAKHI</span>
         </motion.h1>
 
-        {/* Subtext — max 20 words, single sentence */}
+        {/* Subtext */}
         <motion.p
           variants={item}
           className="mt-7 max-w-[42rem] text-pretty text-base leading-relaxed
                      text-ink-soft sm:text-lg"
         >
-          The first AI-powered companion that connects your menstrual cycle,
-          maternal care, and mental wellness into one seamless system.
+          Unlock the secrets of personalized wellness and inner harmony, guided
+          by the wisdom of the angels.
         </motion.p>
 
-        {/* CTA */}
+        {/* CTA — cream button, lavender border */}
         <motion.div variants={item} className="mt-10">
-          <MagneticButton
-            ariaLabel="Open Main App"
-            onClick={() => (window.location.href = "/portal")}
-            className="px-8 py-4 text-base cursor-pointer"
+          <a
+            href="/portal"
+            className="group inline-flex items-center gap-2 rounded-full border border-lavender-400 bg-cream px-8 py-4 text-base font-medium text-plum-900 shadow-[0_10px_30px_-12px_rgba(122,74,163,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_16px_36px_-12px_rgba(122,74,163,0.45)]"
           >
-            Open Main App
-            <ArrowRight size={20} weight="bold" />
-          </MagneticButton>
+            Explore the SAKHI Journey
+            <ArrowRight
+              size={20}
+              weight="bold"
+              className="transition-transform duration-300 group-hover:translate-x-1"
+            />
+          </a>
         </motion.div>
       </motion.div>
 
-      {/* Scroll indicator — subtle, not a labeled "scroll" cue */}
+      {/* Subtle scroll cue */}
       <motion.div
         aria-hidden
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
         initial={{ opacity: 0 }}
         animate={{ opacity: reduce ? 0.4 : [0.2, 0.6, 0.2] }}
-        transition={{
-          duration: 2.4,
-          repeat: reduce ? 0 : Infinity,
-          delay: 1.8,
-        }}
+        transition={{ duration: 2.4, repeat: reduce ? 0 : Infinity, delay: 1.8 }}
       >
         <div className="h-10 w-6 rounded-full border border-plum-700/25 p-1">
           <motion.div
