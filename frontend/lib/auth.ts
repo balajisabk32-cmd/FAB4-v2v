@@ -74,7 +74,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/portal", // redirect to custom portal page for login UI
+    signIn: "/onboarding", // redirect to onboarding flow
   },
   secret: process.env.NEXTAUTH_SECRET || "sakhi_secret_nextauth_998811",
 };

@@ -21,6 +21,11 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const handleSignOut = async () => {
+    localStorage.removeItem("sakhi_last_checkin");
+    await signOut();
+  };
+
   const links = [
     { label: "Cycle", href: "#features" },
     { label: "Mind", href: "#features" },
@@ -71,14 +76,14 @@ export function Navigation() {
               </span>
               <Button
                 variant="primary"
-                onClick={() => (window.location.href = "/dashboard")}
+                onClick={() => (window.location.href = "/onboarding")}
                 className="px-4 py-1.5 text-xs font-medium"
                 glow
               >
                 Dashboard
               </Button>
               <button
-                onClick={() => signOut()}
+                onClick={handleSignOut}
                 className="text-xs font-medium text-ink-soft hover:text-plum-900 transition-colors cursor-pointer"
               >
                 Sign Out
@@ -87,7 +92,7 @@ export function Navigation() {
           ) : (
             <Button
               variant="primary"
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("google", { callbackUrl: "/onboarding" })}
               className="px-5 py-2 text-sm"
               glow
             >

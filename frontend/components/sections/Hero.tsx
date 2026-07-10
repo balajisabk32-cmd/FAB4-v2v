@@ -93,20 +93,7 @@ export function Hero() {
           by the wisdom of the angels.
         </motion.p>
 
-        {/* CTA — cream button, lavender border */}
-        <motion.div variants={item} className="mt-10">
-          <a
-            href="/portal"
-            className="group inline-flex items-center gap-2 rounded-full border border-lavender-400 bg-cream px-8 py-4 text-base font-medium text-plum-900 shadow-[0_10px_30px_-12px_rgba(122,74,163,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_16px_36px_-12px_rgba(122,74,163,0.45)]"
-          >
-            Explore the SAKHI Journey
-            <ArrowRight
-              size={20}
-              weight="bold"
-              className="transition-transform duration-300 group-hover:translate-x-1"
-            />
-          </a>
-        </motion.div>
+
       </motion.div>
 
       {/* Subtle scroll cue */}

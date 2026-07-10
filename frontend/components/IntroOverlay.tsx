@@ -265,8 +265,8 @@ export function IntroOverlay({ onComplete }: { onComplete: () => void }) {
             alt="Sakhi Logo"
             className="h-10 w-auto mix-blend-multiply"
           />
-          <span className="text-2xl font-black tracking-[0.15em] text-plum-900">
-            SAKHI
+          <span className="text-4xl font-cute text-plum-900 pr-2">
+            Sakhi
           </span>
         </motion.div>
       </motion.div>

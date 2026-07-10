@@ -28,8 +28,8 @@ export function ScrollLogo() {
           alt="Sakhi"
           className="h-10 w-auto mix-blend-multiply transition-opacity duration-300 group-hover:opacity-90"
         />
-        <span className="text-xl font-black tracking-[0.15em] text-plum-900">
-          SAKHI
+        <span className="text-3xl font-cute text-plum-900 pr-1">
+          Sakhi
         </span>
       </button>
     </div>

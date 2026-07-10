@@ -129,11 +129,12 @@ export default function SakhiAvatar({ aiState, checkInMode = false, onCheckInCom
         </p>
       </div>
 
-      {/* Right Column: Chat Interface */}
-      <div className="w-full md:w-2/3 flex flex-col h-[400px] bg-white/50 rounded-[2rem] border border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] p-6">
+      <div className="w-full md:w-2/3 flex flex-col h-[400px] bg-white/50 rounded-[2rem] border border-white/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] p-6 overflow-hidden">
         
         {checkInMode ? (
-          <DailyCheckInChat onComplete={onCheckInComplete || (() => {})} />
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 w-full">
+            <DailyCheckInChat onComplete={onCheckInComplete || (() => {})} />
+          </div>
         ) : (
           <div className="flex flex-col h-full">
             {/* Messages Area */}

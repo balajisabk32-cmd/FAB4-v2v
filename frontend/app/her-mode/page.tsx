@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import {
   Bell,
   GearSix,
@@ -14,9 +14,9 @@ import {
   FilePdf,
   Baby,
   Heartbeat,
+  SignOut,
 } from "@phosphor-icons/react";
 import SakhiAvatar, { AIState } from "@/components/SakhiAvatar";
-import OnboardingChat from "@/components/OnboardingChat";
 import {
   CycleLengthChart,
   PeriodDurationChart,
@@ -46,7 +46,6 @@ export default function HerModePage() {
   const [aiState, setAiState] = useState<AIState>("idle");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [mlPredictions, setMlPredictions] = useState<any>({});
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
@@ -76,7 +75,7 @@ export default function HerModePage() {
         setLogs(data.logs || []);
         setCycleHistory(data.cycleHistory || []);
         if (!data.profile.preferred_name) {
-          setShowOnboarding(true);
+          window.location.href = "/onboarding";
         }
       }
     } catch (err) {
@@ -87,7 +86,7 @@ export default function HerModePage() {
   };
 
   useEffect(() => {
-    if (!isCheckingData && !showOnboarding) {
+    if (!isCheckingData) {
       const todayStr = new Date().toISOString().split("T")[0];
       const lastCheckIn = localStorage.getItem("sakhi_last_checkin");
       if (lastCheckIn !== todayStr) {
@@ -116,16 +115,6 @@ export default function HerModePage() {
   const diffTime = nextPeriod.getTime() - today.getTime();
   const daysUntilNext = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   const isPcosRisk = profile?.diagnosed_conditions?.includes("PCOS") || profile?.cycle_regularity === "No";
-
-  const handleOnboardingComplete = (data: any) => {
-    setProfile((prev: any) => ({
-      ...prev,
-      preferred_name: data.name,
-      cycle_length_avg: data.cycleLength,
-      period_duration: data.periodDuration
-    }));
-    setShowOnboarding(false);
-  };
 
   const handleCheckInComplete = async (data: any) => {
     setAiState("thinking");
@@ -173,20 +162,16 @@ export default function HerModePage() {
     setTimeout(() => setPulsingChart(null), 3000);
   };
 
+  const handleSignOut = async () => {
+    localStorage.removeItem("sakhi_last_checkin");
+    await signOut({ callbackUrl: '/' });
+  };
+
   // Merge ML predictions with existing profile data
   const pcosRiskScore = mlPredictions.pcos ? mlPredictions.pcos.probability_pcos * 100 : (isPcosRisk ? 75 : 20);
+  const thyroidRiskScore = profile?.diagnosed_conditions?.includes("Hypothyroidism") ? 85 : 15;
   const cycleAvg = mlPredictions.cycle ? (profile?.cycle_length_avg || 28) : (profile?.cycle_length_avg || 28);
   const daysUntil = mlPredictions.cycle ? mlPredictions.cycle.days_until_next_period : daysUntilNext;
-
-  if (showOnboarding) {
-    return (
-      <div className="min-h-[100dvh] bg-[#FAF8F5] selection:bg-[#2D1B36]/10 font-sans relative flex items-center justify-center p-4">
-        <div className="w-full max-w-lg bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
-           <OnboardingChat onComplete={handleOnboardingComplete} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-[100dvh] bg-[#FAF8F5] selection:bg-[#2D1B36]/10 font-sans relative">
@@ -224,8 +209,16 @@ export default function HerModePage() {
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-[#2D1B36] hover:bg-white/80 transition-all shadow-sm"
+            title="Settings"
           >
             <GearSix weight="duotone" className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={handleSignOut}
+            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-red-500 hover:bg-white/80 transition-all shadow-sm"
+            title="Sign Out"
+          >
+            <SignOut weight="duotone" className="w-5 h-5" />
           </button>
         </div>
       </header>
@@ -238,7 +231,7 @@ export default function HerModePage() {
           className="w-full grid grid-cols-1 md:grid-cols-12 gap-6 pb-24"
         >
           {/* Main AI Avatar Section */}
-        <div className="md:col-span-12">
+        <div className="md:col-span-12 print:hidden">
           <SakhiAvatar 
             aiState={aiState} 
             checkInMode={showCheckIn} 
@@ -303,14 +296,14 @@ export default function HerModePage() {
              <SleepHoursChart data={logs} />
           </div>
 
-          {/* PCOS Warning and Export */}
+          {/* PCOS Warning, Thyroid Warning and Export */}
           <motion.div 
             animate={pulsingChart === 'pcos' ? { scale: [1, 1.02, 1], boxShadow: ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 30px rgba(239,68,68,0.4)", "0px 0px 0px rgba(0,0,0,0)"] } : {}}
             transition={{ duration: 1.5, repeat: pulsingChart === 'pcos' ? 2 : 0 }}
-            className={`${cardClass} md:col-span-6`}
+            className={`${cardClass} md:col-span-4`}
           >
             <div className={iconWrapClass}><WarningCircle weight="duotone" className="w-6 h-6 text-orange-500" /></div>
-            <h3 className="text-xl font-medium text-[#2D1B36] mb-2">PCOS Risk Indicator</h3>
+            <h3 className="text-xl font-medium text-[#2D1B36] mb-2">PCOS Predictor</h3>
             <div className="h-3 w-full bg-[#2D1B36]/5 rounded-full overflow-hidden mt-8 relative">
               <motion.div 
                 initial={{ width: 0 }} 
@@ -324,9 +317,26 @@ export default function HerModePage() {
             </p>
           </motion.div>
 
+          {/* Thyroid Predictor */}
+          <div className={`${cardClass} md:col-span-4`}>
+            <div className={iconWrapClass}><Brain weight="duotone" className="w-6 h-6 text-indigo-500" /></div>
+            <h3 className="text-xl font-medium text-[#2D1B36] mb-2">Thyroid Predictor</h3>
+            <div className="h-3 w-full bg-[#2D1B36]/5 rounded-full overflow-hidden mt-8 relative">
+              <motion.div 
+                initial={{ width: 0 }} 
+                animate={{ width: `${thyroidRiskScore}%` }} 
+                transition={{ duration: 1.5, ease: "easeOut" }} 
+                className={`h-full bg-gradient-to-r ${thyroidRiskScore > 50 ? 'from-amber-400 to-red-500' : 'from-emerald-400 to-amber-400'}`} 
+              />
+            </div>
+            <p className="text-sm font-medium text-[#2D1B36]/60 mt-4 text-right">
+              {thyroidRiskScore > 50 ? `Elevated Risk (${Math.round(thyroidRiskScore)}%)` : `Low Risk (${Math.round(thyroidRiskScore)}%)`}
+            </p>
+          </div>
+
           <div 
             onClick={() => window.print()}
-            className={`${cardClass} md:col-span-6 flex flex-col justify-center items-center text-center group cursor-pointer no-print`}
+            className={`${cardClass} md:col-span-4 flex flex-col justify-center items-center text-center group cursor-pointer print:hidden`}
           >
             <div className="w-20 h-20 rounded-full bg-white/50 border border-white/40 shadow-sm flex items-center justify-center mb-6 group-hover:scale-110 group-hover:shadow-md transition-all duration-500">
               <FilePdf weight="duotone" className="w-8 h-8 text-[#2D1B36]" />
@@ -335,6 +345,86 @@ export default function HerModePage() {
             <p className="text-sm text-[#2D1B36]/60 mt-2">Generate your Menstrual PDF report for your next doctor visit.</p>
           </div>
         </motion.div>
+
+        {/* --- PRINT ONLY LAYOUT --- */}
+        <div className="hidden print:block w-full px-8 text-black bg-white">
+          {/* PAGE 1: Personal Details */}
+          <div className="min-h-[100vh] flex flex-col justify-center" style={{ pageBreakAfter: 'always' }}>
+            <div className="text-center mb-16">
+              <h1 className="text-5xl font-bold mb-4 text-[#2D1B36]">Sakhi Health Report</h1>
+              <p className="text-xl text-gray-500">Menstrual Health & Wellness Profile</p>
+            </div>
+            
+            <div className="max-w-2xl mx-auto w-full bg-gray-50 rounded-2xl p-10 border border-gray-200">
+              <h2 className="text-3xl font-semibold mb-8 text-[#2D1B36] border-b pb-4">Personal Details</h2>
+              <div className="space-y-6 text-xl">
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500 font-medium">Name</span>
+                  <span className="font-semibold">{displayName}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500 font-medium">Email</span>
+                  <span className="font-semibold">{session?.user?.email}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500 font-medium">Average Cycle Length</span>
+                  <span className="font-semibold">{profile?.cycle_length_avg || 28} days</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500 font-medium">Period Duration</span>
+                  <span className="font-semibold">{profile?.period_duration || 5} days</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200 pb-2">
+                  <span className="text-gray-500 font-medium">Diagnosed Conditions</span>
+                  <span className="font-semibold">{profile?.diagnosed_conditions?.join(', ') || 'None'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* PAGE 2: Doctor Summary */}
+          <div className="min-h-[90vh] pt-12" style={{ pageBreakAfter: 'always' }}>
+            <h2 className="text-4xl font-bold mb-8 text-[#2D1B36] border-b pb-4">Written Summarization</h2>
+            
+            <div className="bg-pink-50 rounded-2xl p-8 mb-10 border border-pink-100">
+              <h3 className="text-2xl font-semibold mb-4 text-[#2D1B36]">Clinical Overview</h3>
+              <p className="text-xl leading-relaxed text-[#2D1B36]/80">
+                Based on recent tracking, {displayName}'s menstrual cycle is currently averaging {cycleAvg} days. 
+                The patient has tracked {logs.length} daily logs over the past period.
+                {isPcosRisk ? " There are indicators of elevated PCOS risk based on symptom patterns and/or clinical history." : " PCOS risk indicators appear low."}
+                {profile?.diagnosed_conditions?.includes("Hypothyroidism") ? " The patient has a clinical history of Hypothyroidism which may impact cycle regularity and fatigue levels." : ""}
+                {" "}The patient's next cycle is predicted to start in approximately {daysUntil} days.
+              </p>
+            </div>
+
+            <h3 className="text-2xl font-semibold mt-12 mb-6 text-[#2D1B36]">Recent Daily Logs</h3>
+            <table className="w-full text-left text-lg">
+              <thead>
+                 <tr className="bg-gray-100">
+                   <th className="p-4 rounded-tl-lg font-semibold">Date</th>
+                   <th className="p-4 font-semibold">Flow Intensity</th>
+                   <th className="p-4 font-semibold">Cramps (0-10)</th>
+                   <th className="p-4 rounded-tr-lg font-semibold">Symptoms</th>
+                 </tr>
+              </thead>
+              <tbody>
+                {logs.slice(-14).reverse().map((l: any, i: number) => (
+                  <tr key={i} className="border-b border-gray-100">
+                    <td className="p-4 text-gray-600">{new Date(l.log_date).toLocaleDateString()}</td>
+                    <td className="p-4">{l.flow_intensity}</td>
+                    <td className="p-4">{l.cramps_severity}</td>
+                    <td className="p-4">{l.symptoms?.join(', ') || 'None'}</td>
+                  </tr>
+                ))}
+                {logs.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-gray-500 italic">No recent logs found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
 
       <SettingsModal 

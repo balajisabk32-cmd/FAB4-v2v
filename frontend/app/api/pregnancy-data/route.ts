@@ -1,12 +1,22 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const email = session.user.email.replace(/[^a-zA-Z0-9]/g, '_');
+
   const today = new Date();
   
   // Get any user overrides from settings
   const cookieStore = cookies();
-  const overridesStr = cookieStore.get('sakhi_preg_profile')?.value;
+  const overridesStr = cookieStore.get(`sakhi_preg_profile_${email}`)?.value;
   const overrides = overridesStr ? JSON.parse(overridesStr) : {};
   
   // Calculate a mock pregnancy that is currently in Week 18 (unless overridden)
