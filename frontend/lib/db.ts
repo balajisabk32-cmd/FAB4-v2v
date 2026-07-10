@@ -1,0 +1,255 @@
+import { Pool } from 'pg';
+
+let pool: Pool | null = null;
+let isMockMode = false;
+let connectionError: string | null = null;
+
+// Graceful Mock Database Store (for fallback)
+const mockDb = {
+  users: [] as any[],
+  cycleLogs: [] as any[],
+  triageLogs: [] as any[],
+  wellnessLogs: [] as any[],
+};
+
+// Initialize pool if DATABASE_URL is available
+if (process.env.DATABASE_URL) {
+  try {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      // For Serverless / Next.js, close idle connections after 10s
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      ssl: process.env.DATABASE_URL.includes('supabase.co') || process.env.DATABASE_URL.includes('neon.tech') 
+        ? { rejectUnauthorized: false } 
+        : undefined
+    });
+  } catch (err: any) {
+    console.error("Failed to initialize PostgreSQL pool:", err.message);
+    isMockMode = true;
+    connectionError = err.message;
+  }
+} else {
+  console.log("No DATABASE_URL found. Running in Graceful Mock Mode.");
+  isMockMode = true;
+  connectionError = "No DATABASE_URL configured in environment variables.";
+}
+
+// Check database connection status
+export async function getDbStatus() {
+  if (isMockMode || !pool) {
+    return { connected: false, mode: 'Mock/Demo', error: connectionError };
+  }
+  try {
+    const client = await pool.connect();
+    client.release();
+    return { connected: true, mode: 'PostgreSQL', error: null };
+  } catch (err: any) {
+    console.error("PostgreSQL connection check failed:", err.message);
+    return { connected: false, mode: 'Mock/Demo (Fallback)', error: err.message };
+  }
+}
+
+// Schema Migration
+export async function initDatabase() {
+  if (isMockMode || !pool) return;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Create Users Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        name VARCHAR(255),
+        image VARCHAR(255),
+        age INTEGER,
+        bmi NUMERIC(5,2),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create Cycle Logs Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cycle_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        start_date DATE NOT NULL,
+        end_date DATE,
+        cycle_length INTEGER,
+        period_length INTEGER,
+        flow_intensity VARCHAR(50),
+        cramp_severity INTEGER DEFAULT 0,
+        bloating_severity INTEGER DEFAULT 0,
+        headache_severity INTEGER DEFAULT 0,
+        fatigue_severity INTEGER DEFAULT 0,
+        acne_severity INTEGER DEFAULT 0,
+        stress_level INTEGER DEFAULT 0,
+        sleep_hours NUMERIC(4,2),
+        exercise_frequency VARCHAR(50),
+        diet VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create Triage Logs Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS triage_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        log_date DATE DEFAULT CURRENT_DATE,
+        urgency VARCHAR(50),
+        reasons TEXT[],
+        suspected_profiles TEXT[],
+        advice TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create Wellness Logs Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS wellness_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        log_date DATE NOT NULL,
+        mood VARCHAR(50),
+        sleep_hours NUMERIC(4,2),
+        stress_level INTEGER,
+        anxiety BOOLEAN,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query('COMMIT');
+    console.log("PostgreSQL database tables initialized successfully.");
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    console.error("Database migration failed, falling back to mock mode:", err.message);
+    isMockMode = true;
+    connectionError = err.message;
+  } finally {
+    client.release();
+  }
+}
+
+// Query helper that handles database queries and gracefully switches to mock store
+export async function query(text: string, params?: any[]) {
+  if (isMockMode || !pool) {
+    return mockQuery(text, params);
+  }
+  try {
+    return await pool.query(text, params);
+  } catch (err: any) {
+    console.error("PostgreSQL query failed. Falling back to mock store for this operation. Error:", err.message);
+    return mockQuery(text, params);
+  }
+}
+
+// Mock Query Implementation for Local Demo fallback
+function mockQuery(text: string, params?: any[]) {
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ');
+  
+  // 1. SELECT * FROM users WHERE email = $1
+  if (normalized.includes('select * from users where email =')) {
+    const email = params ? params[0] : '';
+    const user = mockDb.users.find(u => u.email === email);
+    return { rows: user ? [user] : [] };
+  }
+  
+  // 2. INSERT INTO users (email, name, image) VALUES ($1, $2, $3) RETURNING *
+  if (normalized.includes('insert into users') && normalized.includes('returning *')) {
+    const email = params ? params[0] : '';
+    const name = params ? params[1] : '';
+    const image = params ? params[2] : '';
+    let user = mockDb.users.find(u => u.email === email);
+    if (!user) {
+      user = {
+        id: mockDb.users.length + 1,
+        email,
+        name,
+        image,
+        age: params && params.length > 3 ? params[3] : null,
+        bmi: params && params.length > 4 ? params[4] : null,
+        created_at: new Date()
+      };
+      mockDb.users.push(user);
+    }
+    return { rows: [user] };
+  }
+
+  // 3. UPDATE users SET age = $1, bmi = $2 ... WHERE id = $3
+  if (normalized.includes('update users set') && normalized.includes('where id =')) {
+    const age = params ? params[0] : null;
+    const bmi = params ? params[1] : null;
+    const id = params ? params[2] : null;
+    const user = mockDb.users.find(u => u.id === id);
+    if (user) {
+      user.age = age;
+      user.bmi = bmi;
+    }
+    return { rows: [user || {}] };
+  }
+
+  // 4. SELECT * FROM cycle_logs WHERE user_id = $1 ORDER BY start_date DESC
+  if (normalized.includes('select * from cycle_logs where user_id =')) {
+    const userId = params ? params[0] : null;
+    const logs = mockDb.cycleLogs
+      .filter(l => l.user_id === userId)
+      .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime());
+    return { rows: logs };
+  }
+
+  // 5. INSERT INTO cycle_logs
+  if (normalized.includes('insert into cycle_logs')) {
+    const log = {
+      id: mockDb.cycleLogs.length + 1,
+      user_id: params ? params[0] : null,
+      start_date: params ? params[1] : null,
+      end_date: params ? params[2] : null,
+      cycle_length: params ? params[3] : null,
+      period_length: params ? params[4] : null,
+      flow_intensity: params ? params[5] : null,
+      cramp_severity: params ? params[6] : 0,
+      bloating_severity: params ? params[7] : 0,
+      headache_severity: params ? params[8] : 0,
+      fatigue_severity: params ? params[9] : 0,
+      acne_severity: params ? params[10] : 0,
+      stress_level: params ? params[11] : 0,
+      sleep_hours: params ? params[12] : null,
+      exercise_frequency: params ? params[13] : null,
+      diet: params ? params[14] : null,
+      created_at: new Date()
+    };
+    mockDb.cycleLogs.push(log);
+    return { rows: [log] };
+  }
+
+  // 6. SELECT * FROM triage_logs WHERE user_id = $1 ORDER BY log_date DESC
+  if (normalized.includes('select * from triage_logs where user_id =')) {
+    const userId = params ? params[0] : null;
+    const logs = mockDb.triageLogs
+      .filter(l => l.user_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return { rows: logs };
+  }
+
+  // 7. INSERT INTO triage_logs
+  if (normalized.includes('insert into triage_logs')) {
+    const log = {
+      id: mockDb.triageLogs.length + 1,
+      user_id: params ? params[0] : null,
+      log_date: params ? params[1] : new Date().toISOString().split('T')[0],
+      urgency: params ? params[2] : 'NORMAL',
+      reasons: params ? params[3] : [],
+      suspected_profiles: params ? params[4] : [],
+      advice: params ? params[5] : '',
+      created_at: new Date()
+    };
+    mockDb.triageLogs.push(log);
+    return { rows: [log] };
+  }
+
+  return { rows: [] };
+}

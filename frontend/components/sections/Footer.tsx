@@ -35,11 +35,15 @@ export function Footer() {
                 <span className="display-serif text-lavender-200">Start listening.</span>
               </h2>
               <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-cream/70">
-                The demo takes ninety seconds. No account, no data stored.
+                Open the app in seconds. No account, no data stored.
               </p>
               <div className="mt-9 flex justify-center">
-                <MagneticButton ariaLabel="Try the demo" className="px-8 py-4 text-base">
-                  Try the Demo
+                <MagneticButton
+                  ariaLabel="Open Main App"
+                  onClick={() => (window.location.href = "/portal")}
+                  className="px-8 py-4 text-base cursor-pointer"
+                >
+                  Open Main App
                   <ArrowRight size={20} weight="bold" />
                 </MagneticButton>
               </div>

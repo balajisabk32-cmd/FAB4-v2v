@@ -100,7 +100,11 @@ export function Hero() {
 
         {/* CTA */}
         <motion.div variants={item} className="mt-10">
-          <MagneticButton ariaLabel="Open Main App" className="px-8 py-4 text-base">
+          <MagneticButton
+            ariaLabel="Open Main App"
+            onClick={() => (window.location.href = "/portal")}
+            className="px-8 py-4 text-base cursor-pointer"
+          >
             Open Main App
             <ArrowRight size={20} weight="bold" />
           </MagneticButton>

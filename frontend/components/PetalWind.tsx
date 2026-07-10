@@ -85,9 +85,12 @@ export function PetalWind() {
     window.addEventListener("pointerout", onLeave, { passive: true });
 
     // ---- Petal population ----
+    // Denser, more immersive floral storm: ~280 on a full HD viewport, never
+    // fewer than 120 so even small screens feel lush. Reduced-motion renders
+    // nothing (handled above), so this only affects the animated path.
     const density = Math.min(
-      200,
-      Math.max(80, Math.floor((width * height) / 10000))
+      280,
+      Math.max(120, Math.floor((width * height) / 7000))
     );
     const petals: Petal[] = [];
 

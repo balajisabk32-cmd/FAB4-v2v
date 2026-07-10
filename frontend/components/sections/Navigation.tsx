@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/kokonut";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 /**
  * Navigation — single line at desktop, height capped under 80px.
@@ -11,6 +12,7 @@ import { Button } from "@/components/kokonut";
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   const reduce = useReducedMotion();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -51,10 +53,48 @@ export function Navigation() {
           ))}
         </div>
 
-        {/* CTA */}
-        <Button variant="primary" className="px-5 py-2 text-sm" glow>
-          Open Main App
-        </Button>
+        {/* Auth status & CTA */}
+        <div className="flex items-center gap-4">
+          {status === "authenticated" ? (
+            <div className="flex items-center gap-3">
+              {session?.user?.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={session.user.image}
+                  alt={session.user.name || "User Profile"}
+                  className="h-8 w-8 rounded-full border border-plum-700/20 shadow-sm"
+                  loading="lazy"
+                />
+              )}
+              <span className="hidden text-xs font-medium text-plum-900 sm:inline">
+                Hi, {session?.user?.name?.split(" ")[0]}
+              </span>
+              <Button
+                variant="primary"
+                onClick={() => (window.location.href = "/portal")}
+                className="px-4 py-1.5 text-xs font-medium"
+                glow
+              >
+                Dashboard
+              </Button>
+              <button
+                onClick={() => signOut()}
+                className="text-xs font-medium text-ink-soft hover:text-plum-900 transition-colors cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={() => signIn("google")}
+              className="px-5 py-2 text-sm"
+              glow
+            >
+              Sign In
+            </Button>
+          )}
+        </div>
       </nav>
     </motion.header>
   );
