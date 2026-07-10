@@ -14,8 +14,8 @@ export async function GET() {
 
   const today = new Date();
   
-  // Get any user overrides from settings
-  const cookieStore = cookies();
+  // Get user profile overrides from cookies
+  const cookieStore = await cookies();
   const overridesStr = cookieStore.get(`sakhi_preg_profile_${email}`)?.value;
   const overrides = overridesStr ? JSON.parse(overridesStr) : {};
   

@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     }
     const email = session.user.email.replace(/[^a-zA-Z0-9]/g, '_');
 
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
     if (mode === 'pregnancy') {
       const cookieName = `sakhi_preg_profile_${email}`;
