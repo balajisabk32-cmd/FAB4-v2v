@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import {
-  Bell, GearSix, Baby, Drop, Brain, WarningCircle, FilePdf, Heartbeat, ShieldCheck
+  Bell, GearSix, Baby, Drop, Brain, WarningCircle, FilePdf, Heartbeat, ShieldCheck, SignOut
 } from "@phosphor-icons/react";
 import PregnancyAvatar, { AIState } from "@/components/PregnancyAvatar";
 import {
@@ -59,6 +59,9 @@ export default function PregnancyModePage() {
         setLogs(data.logs || []);
         setNutrition(data.nutrition);
         setAppointments(data.appointments || []);
+        if (!data.profile.preferred_name) {
+          window.location.href = "/onboarding";
+        }
       }
     } catch (err) {
       console.error("Failed to fetch dashboard data", err);
@@ -71,6 +74,11 @@ export default function PregnancyModePage() {
     if (data.type === 'emergency') {
       setEmergency(true);
     }
+  };
+
+  const handleSignOut = async () => {
+    localStorage.removeItem("sakhi_last_checkin");
+    await signOut({ callbackUrl: '/' });
   };
 
   if (!mounted || isCheckingData) {
@@ -118,8 +126,16 @@ export default function PregnancyModePage() {
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-[#2D1B36] hover:bg-white/80 transition-all shadow-sm"
+            title="Settings"
           >
             <GearSix weight="duotone" className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={handleSignOut}
+            className="w-12 h-12 rounded-full bg-white/50 backdrop-blur-md border border-white/40 flex items-center justify-center text-[#2D1B36]/60 hover:text-red-500 hover:bg-white/80 transition-all shadow-sm"
+            title="Sign Out"
+          >
+            <SignOut weight="duotone" className="w-5 h-5" />
           </button>
         </div>
       </header>
@@ -240,12 +256,12 @@ export default function PregnancyModePage() {
           </div>
 
           {/* Appointments & Nutrition Row */}
-          <div className={`${cardClass} md:col-span-4`}>
+          <div className={`${cardClass} md:col-span-6`}>
             <h3 className="text-xl font-medium text-[#2D1B36] mb-6">Appointments</h3>
             <AppointmentTimeline appointments={appointments} />
           </div>
 
-          <div className={`${cardClass} md:col-span-4`}>
+          <div className={`${cardClass} md:col-span-6`}>
             <h3 className="text-xl font-medium text-[#2D1B36] mb-4">Nutrition Breakdown</h3>
             <NutritionScoreChart nutrition={nutrition} />
           </div>

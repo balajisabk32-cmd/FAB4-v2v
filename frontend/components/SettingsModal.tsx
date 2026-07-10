@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Baby, Clock, CheckCircle } from '@phosphor-icons/react';
+import { X, User, Baby, Clock, CheckCircle, ArrowsLeftRight } from '@phosphor-icons/react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -54,6 +54,20 @@ export default function SettingsModal({ isOpen, onClose, mode, currentData }: Se
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleRestartSetup = () => {
+    // Clear all profile cookies to force onboarding
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i];
+      const eqPos = cookie.indexOf("=");
+      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+      if (name.startsWith("sakhi_her_profile") || name.startsWith("sakhi_preg_profile")) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      }
+    }
+    window.location.href = "/onboarding";
   };
 
   return (
@@ -161,6 +175,21 @@ export default function SettingsModal({ isOpen, onClose, mode, currentData }: Se
                     </>
                   )}
                 </div>
+              </div>
+              {/* Mode Switcher */}
+              <div className="pt-6 border-t border-black/5">
+                <h3 className="text-lg font-medium text-[#2D1B36] flex items-center gap-2 mb-4">
+                  <ArrowsLeftRight weight="duotone" className="text-pink-500" /> Switch Mode & Restart Setup
+                </h3>
+                <p className="text-sm text-[#2D1B36]/60 mb-4">
+                  Want to switch between Her Mode and Pregnancy Mode? Or change your initial onboarding answers?
+                </p>
+                <button 
+                  onClick={handleRestartSetup}
+                  className="w-full py-3 rounded-xl font-medium text-pink-600 bg-pink-50 hover:bg-pink-100 transition-colors border border-pink-100"
+                >
+                  Restart Initial Setup
+                </button>
               </div>
             </div>
 

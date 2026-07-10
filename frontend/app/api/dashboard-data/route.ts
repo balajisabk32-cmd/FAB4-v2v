@@ -16,13 +16,21 @@ if (process.env.DATABASE_URL) {
 
 // GET: Fetch dashboard data for charts
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const email = session.user.email.replace(/[^a-zA-Z0-9]/g, '_');
+
   if (!pool) {
     // Generate rich mock data for the new dashboard features
     const today = new Date();
     
     // Get any user overrides from settings
     const cookieStore = cookies();
-    const overridesStr = cookieStore.get('sakhi_her_profile')?.value;
+    const overridesStr = cookieStore.get(`sakhi_her_profile_${email}`)?.value;
     const overrides = overridesStr ? JSON.parse(overridesStr) : {};
       
       const mockProfile = {
@@ -84,11 +92,7 @@ export async function GET() {
     return NextResponse.json({ profile: mockProfile, logs: mockLogs, cycleHistory: mockCycleHistory, mode: 'mock' });
   }
 
-  const session = await getServerSession(authOptions);
-  
-  if (!session || !session.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+
 
   try {
     const client = await pool.connect();

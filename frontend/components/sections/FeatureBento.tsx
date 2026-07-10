@@ -5,29 +5,10 @@ import {
   Heartbeat,
   Brain,
   Baby,
-  MicrophoneStage,
-  CellSignalFull,
 } from "@phosphor-icons/react";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { Reveal, itemVariants } from "@/components/Reveal";
 import { Badge } from "@/components/kokonut";
-
-/**
- * FeatureBento — asymmetric masonry-style bento grid.
- *
- * 5 features, 5 cells, no empty cells. Layout uses fractional grid
- * columns so cells are intentionally unequal in size (the big
- * "Cycle Intelligence" tile anchors the grid, others fill around it).
- *
- * Each cell has REAL visual variation (not 5 white cards):
- *  - Cycle Intelligence: gradient panel + animated cycle ring
- *  - Mental Wellness: glass + waveform
- *  - Maternal Care: tinted panel + image
- *  - Voice AI Triage: plum (inverted) panel, the standout
- *  - Offline SMS Mode: cream-deep + signal glyph
- *
- * Mobile (<768px): collapses to single column, explicit order.
- */
 
 export function FeatureBento() {
   const reduce = useReducedMotion();
@@ -35,7 +16,6 @@ export function FeatureBento() {
   return (
     <section className="relative px-6 py-24 sm:py-32">
       <div className="mx-auto max-w-6xl">
-        {/* Section header — stacked, no split-header */}
         <Reveal>
           <p className="mb-4 text-xs uppercase tracking-[0.18em] text-ink-soft">
             one system, five senses
@@ -48,9 +28,6 @@ export function FeatureBento() {
           </h2>
         </Reveal>
 
-        {/* Bento grid: asymmetric, fractional columns.
-            Desktop: 6-col grid, cells span unevenly.
-            Mobile: single column. */}
         <motion.div
           className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-6 md:grid-rows-[auto_auto]"
           initial="hidden"
@@ -66,44 +43,23 @@ export function FeatureBento() {
             },
           }}
         >
-          {/* CELL 1 — Cycle Intelligence (big, gradient, anchors top-left) */}
           <CycleCell reduce={!!reduce} />
-
-          {/* CELL 2 — Voice AI Triage (inverted plum panel, the standout) */}
-          <VoiceCell reduce={!!reduce} />
-
-          {/* CELL 3 — Mental Wellness (glass + waveform) */}
           <MindCell reduce={!!reduce} />
-
-          {/* CELL 4 — Maternal Care (tinted panel + image) */}
           <MaternalCell />
-
-          {/* CELL 5 — Offline SMS Mode (cream-deep + signal glyph) */}
-          <OfflineCell />
         </motion.div>
       </div>
     </section>
   );
 }
 
-/* ----------------------------------------------------------------------------
-   Individual cells — each keeps its own localized state, icon, and accent.
-   Splitting per-cell avoids JSX dynamic tag pitfalls and keeps the grid
-   readable.
----------------------------------------------------------------------------- */
-
 const IconProps = { weight: "bold" as const };
 
-/** CELL 1 — Cycle Intelligence */
 function CycleCell({ reduce }: { reduce: boolean }) {
   const Icon: PhosphorIcon = Heartbeat;
   return (
     <motion.article
       variants={itemVariants}
-      className="md:col-span-4 md:row-span-1 group relative overflow-hidden rounded-[26px]
-                 bg-gradient-to-br from-lavender-100 via-[#f3e8f8] to-blush-100
-                 border border-white/60 p-7 sm:p-9
-                 shadow-[0_24px_60px_-30px_rgba(74,42,82,0.25)]"
+      className="md:col-span-4 md:row-span-1 group relative overflow-hidden rounded-[26px] bg-gradient-to-br from-lavender-100 via-[#f3e8f8] to-blush-100 border border-white/60 p-7 sm:p-9 shadow-[0_24px_60px_-30px_rgba(74,42,82,0.25)]"
     >
       <div className="relative z-10 flex h-full flex-col justify-between gap-6 sm:flex-row sm:items-end">
         <div className="max-w-md">
@@ -118,10 +74,8 @@ function CycleCell({ reduce }: { reduce: boolean }) {
             Not a 28-day template. Your actual rhythm.
           </p>
         </div>
-        {/* Animated cycle ring */}
         <CycleRing reduce={reduce} />
       </div>
-      {/* ghosted background glyph */}
       <span
         aria-hidden
         className="pointer-events-none absolute -bottom-10 -right-8 text-lavender-200/50"
@@ -132,54 +86,6 @@ function CycleCell({ reduce }: { reduce: boolean }) {
   );
 }
 
-/** CELL 2 — Voice AI Triage (the standout, inverted) */
-function VoiceCell({ reduce }: { reduce: boolean }) {
-  const Icon: PhosphorIcon = MicrophoneStage;
-  const langs = ["हिन्दी", "தமிழ்", "বাংলা", "मराठी", "+8"];
-  return (
-    <motion.article
-      variants={itemVariants}
-      className="md:col-span-2 group relative overflow-hidden rounded-[26px]
-                 bg-plum-900 p-7 text-cream
-                 shadow-[0_24px_60px_-30px_rgba(42,21,47,0.6)]"
-    >
-      <div className="relative z-10 flex h-full flex-col">
-        <span className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-cream/10 px-3 py-1 text-xs text-lavender-200">
-          built for Bharat
-        </span>
-        <Icon size={28} {...IconProps} />
-        <h3 className="mt-4 text-xl font-semibold">Voice AI Triage</h3>
-        <p className="mt-2 text-sm leading-relaxed text-cream/70">
-          Speak in Hindi, Tamil, Bengali, Marathi, or 8 more. Sakhi understands
-          Bharat, not just English.
-        </p>
-
-        {/* language chips */}
-        <div className="mt-5 flex flex-wrap gap-1.5">
-          {langs.map((lang, i) => (
-            <motion.span
-              key={lang}
-              initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 + i * 0.06 }}
-              className="rounded-full bg-cream/10 px-2.5 py-1 text-[11px] text-lavender-100"
-            >
-              {lang}
-            </motion.span>
-          ))}
-        </div>
-      </div>
-      {/* ambient glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-lavender-500/30 blur-3xl breathe"
-      />
-    </motion.article>
-  );
-}
-
-/** CELL 3 — Mental Wellness (glass + waveform) */
 function MindCell({ reduce }: { reduce: boolean }) {
   const Icon: PhosphorIcon = Brain;
   return (
@@ -202,14 +108,12 @@ function MindCell({ reduce }: { reduce: boolean }) {
   );
 }
 
-/** CELL 4 — Maternal Care (tinted panel + image) */
 function MaternalCell() {
   const Icon: PhosphorIcon = Baby;
   return (
     <motion.article
       variants={itemVariants}
-      className="md:col-span-2 group relative overflow-hidden rounded-[26px]
-                 bg-blush-50 border border-blush-100 p-7"
+      className="md:col-span-6 group relative overflow-hidden rounded-[26px] bg-blush-50 border border-blush-100 p-7"
     >
       <div className="relative z-10 flex h-full flex-col">
         <Icon size={26} {...IconProps} />
@@ -221,8 +125,6 @@ function MaternalCell() {
           continuous thread. Care that does not reset between phases.
         </p>
       </div>
-      {/* real image asset for visual variation */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="https://picsum.photos/seed/sakhi-maternal-care-bloom/400/200"
         alt=""
@@ -234,35 +136,6 @@ function MaternalCell() {
   );
 }
 
-/** CELL 5 — Offline SMS Mode (cream-deep + signal glyph) */
-function OfflineCell() {
-  const Icon: PhosphorIcon = CellSignalFull;
-  return (
-    <motion.article
-      variants={itemVariants}
-      className="md:col-span-2 group relative overflow-hidden rounded-[26px]
-                 bg-cream-deep border border-plum-700/10 p-7"
-    >
-      <div className="relative z-10 flex h-full flex-col">
-        <Icon size={26} {...IconProps} />
-        <h3 className="mt-4 text-xl font-semibold text-plum-900">
-          Offline SMS Mode
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          No smartphone. No data. No problem. Cycle reminders and triage reach
-          you over plain SMS.
-        </p>
-        {/* mock SMS bubble for visual interest */}
-        <div className="mt-5 w-fit rounded-2xl rounded-bl-sm bg-white/70 px-3 py-2 text-[11px] text-plum-800 shadow-sm">
-          <span className="text-ink-faint">SAKHI</span> · Day 14 tomorrow.
-          Restock iron.
-        </div>
-      </div>
-    </motion.article>
-  );
-}
-
-/** Animated cycle ring for the Cycle Intelligence tile. */
 function CycleRing({ reduce }: { reduce: boolean }) {
   const r = 42;
   const c = 2 * Math.PI * r;
@@ -310,7 +183,6 @@ function CycleRing({ reduce }: { reduce: boolean }) {
   );
 }
 
-/** Animated waveform for the Mental Wellness tile. */
 function Waveform({ reduce }: { reduce: boolean }) {
   const bars = 18;
   return (

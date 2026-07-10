@@ -156,6 +156,12 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* Cute handwritten logo font */
+.font-cute {
+  font-family: "Pacifico", cursive;
+  font-weight: 400;
+}
+
 /* ----------------------------------------------------------------------------
    UTILITY: breathing animation for ambient elements
 ---------------------------------------------------------------------------- */

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useReducedMotion } from "motion/react";
+import { useSession } from "next-auth/react";
 import { PetalWind } from "@/components/PetalWind";
 import { Navigation } from "@/components/sections/Navigation";
 import { ScrollLogo } from "@/components/ScrollLogo";
@@ -16,8 +17,15 @@ const INTRO_KEY = "sakhi-intro-played";
 
 export default function Home() {
   const reduce = useReducedMotion();
+  const { status } = useSession();
   const [playIntro, setPlayIntro] = useState(false);
   const [introDone, setIntroDone] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      window.location.href = "/onboarding";
+    }
+  }, [status]);
 
   // Always play intro on load (skipped only under reduced motion)
   useEffect(() => {
