@@ -76,7 +76,8 @@ export async function POST(req: Request) {
       try {
         if (call.name === "analyze_cycle") {
           const args = call.args as any;
-          const res = await fetch("http://127.0.0.1:8000/predict/cycle", {
+          const backendUrl = process.env.NEXT_PUBLIC_ML_BACKEND_URL || "http://127.0.0.1:8000";
+          const res = await fetch(`${backendUrl}/predict/cycle`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -88,7 +89,8 @@ export async function POST(req: Request) {
           chartType = "cycle";
         } else if (call.name === "analyze_pcos_risk") {
           const args = call.args as any;
-          const res = await fetch("http://127.0.0.1:8000/predict/pcos", {
+          const backendUrl = process.env.NEXT_PUBLIC_ML_BACKEND_URL || "http://127.0.0.1:8000";
+          const res = await fetch(`${backendUrl}/predict/pcos`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
