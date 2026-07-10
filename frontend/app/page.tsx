@@ -19,13 +19,9 @@ export default function Home() {
   const [playIntro, setPlayIntro] = useState(false);
   const [introDone, setIntroDone] = useState(false);
 
-  // Decide on the client whether the intro should play (once per session,
-  // skipped under reduced motion). Overlay is client-only to avoid SSR flash.
+  // Always play intro on load (skipped only under reduced motion)
   useEffect(() => {
-    const played =
-      typeof window !== "undefined" &&
-      sessionStorage.getItem(INTRO_KEY) === "1";
-    if (played || reduce) {
+    if (reduce) {
       setIntroDone(true);
       setPlayIntro(false);
     } else {
@@ -35,11 +31,6 @@ export default function Home() {
   }, [reduce]);
 
   const handleIntroComplete = () => {
-    try {
-      sessionStorage.setItem(INTRO_KEY, "1");
-    } catch {
-      /* storage unavailable — non-fatal */
-    }
     setIntroDone(true);
     setPlayIntro(false);
   };
