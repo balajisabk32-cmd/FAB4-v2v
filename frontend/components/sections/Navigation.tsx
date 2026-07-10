@@ -71,7 +71,7 @@ export function Navigation() {
               </span>
               <Button
                 variant="primary"
-                onClick={() => (window.location.href = "/portal")}
+                onClick={() => (window.location.href = "/dashboard")}
                 className="px-4 py-1.5 text-xs font-medium"
                 glow
               >
@@ -87,7 +87,7 @@ export function Navigation() {
           ) : (
             <Button
               variant="primary"
-              onClick={() => signIn("google")}
+              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
               className="px-5 py-2 text-sm"
               glow
             >

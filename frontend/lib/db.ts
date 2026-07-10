@@ -71,7 +71,44 @@ export async function initDatabase() {
       );
     `);
 
-    // Create Cycle Logs Table
+    // Create User Health Profiles (One-Time Onboarding)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_health_profiles (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        preferred_name VARCHAR(255),
+        last_period_start DATE,
+        last_period_end DATE,
+        period_duration INTEGER,
+        cycle_length_avg INTEGER,
+        cycle_regularity VARCHAR(50),
+        diagnosed_conditions TEXT[],
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create Daily Health Logs (Check-ins)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS daily_health_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        log_date DATE NOT NULL,
+        on_period BOOLEAN DEFAULT false,
+        flow_intensity VARCHAR(50),
+        cramps_severity INTEGER DEFAULT 0,
+        symptoms TEXT[],
+        mood VARCHAR(50),
+        sleep_hours NUMERIC(4,2),
+        water_consumed VARCHAR(50),
+        exercised BOOLEAN DEFAULT false,
+        warning_signs TEXT[],
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create Cycle Logs Table (Legacy)
     await client.query(`
       CREATE TABLE IF NOT EXISTS cycle_logs (
         id SERIAL PRIMARY KEY,

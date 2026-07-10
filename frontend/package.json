@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/genai": "^2.11.0",
     "@phosphor-icons/react": "^2.1.7",
     "animejs": "^3.2.2",
     "motion": "^11.15.0",
@@ -16,7 +17,8 @@
     "next-auth": "^4.24.14",
     "pg": "^8.22.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "recharts": "^3.9.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
